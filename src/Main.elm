@@ -123,26 +123,15 @@ print a =
     ()
 
 
-
---traverseListMaybe : (List b -> Maybe (List b)) -> (a -> Maybe b) -> List a -> Maybe (List b)
---traverseListMaybe :
---    Applicative_ (a -> List a -> List a) c c b d
---    -> Applicative_ (List e) f d unknown f
---    -> (g -> b)
---    -> List g
---    -> f
---type alias Traversable a b c d e = {traverse:Applicative a b c d e  }
---traverseList : A2 a b c d e listB maybeListB h i j -> (a -> maybeA) -> listA -> maybeListB
---traverseList : Applicative -> Applicative (List b) maybeListB  ->(a->fa)->(List a)->maybeListB
+type alias Traversable a fb ta ftb =
+    (a -> fb) -> ta -> ftb
 
 
 traverseList :
-    --Applicative (a -> List a -> List a) fbc fbc b c
-    ---> Applicative (List d) fc c fc fc
-    A2 (a -> List a -> List a) fbc fbc b c (List d) fc c fc fc
-    -> (e -> b)
-    -> List e
-    -> fc
+    A2 (b -> List b -> List b) fbLbLb fbLbLb fb fc (List b) fLb fc fLb fLb
+    -> (a -> fb)
+    -> List a
+    -> fLb
 traverseList ( a1, a2 ) f list =
     let
         go =
@@ -156,7 +145,75 @@ traverseList ( a1, a2 ) f list =
             map2 ( a1, a2 ) (::) (f x) (go xs)
 
 
+type alias Pure a fa =
+    a -> fa
+
+
+type alias Map2 a b c fa fb fc =
+    (a -> b -> c) -> fa -> fb -> fc
+
+
+type alias PureMap2 a fa b c d fb fc fd =
+    { pure : Pure a fa
+    , map2 : Map2 b c d fb fc fd
+    }
+
+
+type alias PureMap2_ a fa ta fta =
+    PureMap2 ta fta a ta ta fa fta fta
+
+
+
+--type alias PureMap2 tb ftb b fb =
+--    ( Pure tb ftb, Map2 b tb tb fb ftb ftb )
+--traverseList2 :
+--    Pure (List b) ftb
+--    -> Map2 b (List b) (List b) fb ftb ftb
+--    -> (a -> fb)
+--    -> List a
+--    -> ftb
+
+
+traverseList2 :
+    PureMap2_ b fb (List b) fListB
+    -> (a -> fb)
+    -> List a
+    -> fListB
+traverseList2 app f list =
+    case list of
+        [] ->
+            app.pure []
+
+        x :: xs ->
+            app.map2 (::) (f x) (traverseList2 app f xs)
+
+
+
+--traverseList2 :
+--    PureMap2 (List b) ftb b fb
+--    -> (a -> fb)
+--    -> List a
+--    -> ftb
+--traverseList2 ( pure_, map2_ ) f list =
+--    case list of
+--        [] ->
+--            pure_ []
+--
+--        x :: xs ->
+--            map2_ (::) (f x) (traverseList2 ( pure_, map2_ ) f xs)
+
+
 main_ =
+    --traverseList2 ( Just, Maybe.map2 ) String.toInt [ "1" ]
+    --traverseList2
+    traverseList2 <| PureMap2 Just Maybe.map2
+
+
+
+--<| { pure = Just, map2 = Maybe.map2 }
+
+
+main_2 =
     [ print ""
     , print <| traverseList ( listA, listA ) (\x -> [ x, -x ]) [ 1, 2, 3 ]
     , print <| traverseList ( listA, listA ) identity [ [ 1, 2 ], [ 3, 4 ] ]
